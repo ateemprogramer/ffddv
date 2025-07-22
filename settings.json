@@ -1,13 +1,13 @@
 {
   "bot-account": {
-    "username": "BRODI_BOT",
+    "username": "Rizo_BOT",
     "password": "",
     "type": "offline"
   },
 
   "server": {
     "ip": "totetotatiworld.falixsrv.me",
-    "port": 13855,
+    "port": 36643,
     "version": "1.12.1"
   },
 
