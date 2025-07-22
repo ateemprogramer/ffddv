@@ -153,4 +153,10 @@ const app = express();
 app.get('/', (req, res) => res.send('🤖 Bot is alive!'));
 app.listen(process.env.PORT || 3000, () => {
    console.log('🌐 Web server running to keep Render alive');
+
+   setTimeout(() => {
+  bot.look(Math.random(), Math.random(), true);
+  bot.setControlState('sneak', true);
+}, Math.random() * 4000 + 1000);
+
 });
