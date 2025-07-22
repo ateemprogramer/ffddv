@@ -4,7 +4,6 @@ const pathfinder = require('mineflayer-pathfinder').pathfinder;
 const { GoalBlock, GoalXZ } = require('mineflayer-pathfinder').goals;
 
 const config = require('./settings.json');
-
 const loggers = require('./logging.js');
 const logger = loggers.logger;
 
@@ -25,76 +24,48 @@ function createBot() {
    bot.pathfinder.setMovements(defaultMove);
 
    bot.once('spawn', () => {
-      logger.info("Bot joined to the server");
+      logger.info("✅ Bot joined the server");
 
       if (config.utils['auto-auth'].enabled) {
-         logger.info('Started auto-auth module');
-
+         logger.info('🔐 Starting auto-auth module');
          let password = config.utils['auto-auth'].password;
+
          setTimeout(() => {
             bot.chat(`/register ${password} ${password}`);
             bot.chat(`/login ${password}`);
-         }, 500);
-
-         logger.info(`Authentication commands executed`);
+         }, 1000);
       }
 
       if (config.utils['chat-messages'].enabled) {
-         logger.info('Started chat-messages module');
+         logger.info('💬 Starting chat-messages module');
+         const messages = config.utils['chat-messages']['messages'];
+         const delay = config.utils['chat-messages']['repeat-delay'] * 1000;
+         let i = 0;
 
-         let messages = config.utils['chat-messages']['messages'];
-
-         if (config.utils['chat-messages'].repeat) {
-            let delay = config.utils['chat-messages']['repeat-delay'];
-            let i = 0;
-
-            setInterval(() => {
-               bot.chat(`${messages[i]}`);
-
-               if (i + 1 === messages.length) {
-                  i = 0;
-               } else i++;
-            }, delay * 1000);
-         } else {
-            messages.forEach((msg) => {
-               bot.chat(msg);
-            });
-         }
+         setInterval(() => {
+            bot.chat(messages[i]);
+            i = (i + 1) % messages.length;
+         }, delay);
       }
 
-      const pos = config.position;
-
       if (config.position.enabled) {
-         logger.info(
-             `Starting moving to target location (${pos.x}, ${pos.y}, ${pos.z})`
-         );
-         bot.pathfinder.setGoal(new GoalBlock(pos.x, pos.y, pos.z));
+         logger.info(`🧭 Moving to (${config.position.x}, ${config.position.y}, ${config.position.z})`);
+         bot.pathfinder.setGoal(new GoalBlock(config.position.x, config.position.y, config.position.z));
       }
 
       if (config.utils['anti-afk'].enabled) {
-         if (config.utils['anti-afk'].sneak) {
-            bot.setControlState('sneak', true);
-         }
-
-         if (config.utils['anti-afk'].jump) {
-            bot.setControlState('jump', true);
-         }
+         if (config.utils['anti-afk'].sneak) bot.setControlState('sneak', true);
+         if (config.utils['anti-afk'].jump) bot.setControlState('jump', true);
 
          if (config.utils['anti-afk']['hit'].enabled) {
-            let delay = config.utils['anti-afk']['hit']['delay'];
-            let attackMobs = config.utils['anti-afk']['hit']['attack-mobs']
+            const delay = config.utils['anti-afk']['hit']['delay'];
+            const attackMobs = config.utils['anti-afk']['hit']['attack-mobs'];
 
             setInterval(() => {
-               if(attackMobs) {
-                     let entity = bot.nearestEntity(e => e.type !== 'object' && e.type !== 'player'
-                         && e.type !== 'global' && e.type !== 'orb' && e.type !== 'other');
-
-                     if(entity) {
-                        bot.attack(entity);
-                        return
-                     }
+               if (attackMobs) {
+                  const entity = bot.nearestEntity(e => e.type !== 'player' && e.type !== 'object');
+                  if (entity) return bot.attack(entity);
                }
-
                bot.swingArm("right", true);
             }, delay);
          }
@@ -102,12 +73,11 @@ function createBot() {
          if (config.utils['anti-afk'].rotate) {
             setInterval(() => {
                bot.look(bot.entity.yaw + 1, bot.entity.pitch, true);
-            }, 100);
+            }, 5000);
          }
 
          if (config.utils['anti-afk']['circle-walk'].enabled) {
-            let radius = config.utils['anti-afk']['circle-walk']['radius']
-            circleWalk(bot, radius);
+            circleWalk(bot, config.utils['anti-afk']['circle-walk']['radius']);
          }
       }
    });
@@ -119,17 +89,13 @@ function createBot() {
    });
 
    bot.on('goal_reached', () => {
-      if(config.position.enabled) {
-         logger.info(
-             `Bot arrived to target location. ${bot.entity.position}`
-         );
+      if (config.position.enabled) {
+         logger.info(`🏁 Bot arrived at target location: ${bot.entity.position}`);
       }
    });
 
    bot.on('death', () => {
-      logger.warn(
-         `Bot has been died and was respawned at ${bot.entity.position}`
-      );
+      logger.warn(`☠️ Bot has died. Respawned at: ${bot.entity.position}`);
    });
 
    if (config.utils['auto-reconnect']) {
@@ -141,43 +107,51 @@ function createBot() {
    }
 
    bot.on('kicked', (reason) => {
-      let reasonText = JSON.parse(reason).text;
-      if(reasonText === '') {
-         reasonText = JSON.parse(reason).extra[0].text
+      let msg = '';
+      try {
+         const r = JSON.parse(reason);
+         msg = r?.text || r?.extra?.[0]?.text || reason;
+      } catch {
+         msg = reason;
       }
-      reasonText = reasonText.replace(/§./g, '');
+      logger.warn(`🚫 Bot was kicked from server. Reason: ${msg}`);
+   });
 
-      logger.warn(`Bot was kicked from the server. Reason: ${reasonText}`)
-   }
-   );
-
-   bot.on('error', (err) =>
-      logger.error(`${err.message}`)
-   );
+   bot.on('error', (err) => {
+      logger.error(`❌ Error: ${err.message}`);
+   });
 }
 
+// Bot walking in square pattern (anti-afk)
 function circleWalk(bot, radius) {
-   // Make bot walk in square with center in bot's  wthout stopping
-    return new Promise(() => {
-        const pos = bot.entity.position;
-        const x = pos.x;
-        const y = pos.y;
-        const z = pos.z;
+   const pos = bot.entity.position;
+   const x = pos.x;
+   const y = pos.y;
+   const z = pos.z;
 
-        const points = [
-            [x + radius, y, z],
-            [x, y, z + radius],
-            [x - radius, y, z],
-            [x, y, z - radius],
-        ];
+   const points = [
+      [x + radius, y, z],
+      [x, y, z + radius],
+      [x - radius, y, z],
+      [x, y, z - radius],
+   ];
 
-        let i = 0;
-        setInterval(() => {
-             if(i === points.length) i = 0;
-             bot.pathfinder.setGoal(new GoalXZ(points[i][0], points[i][2]));
-             i++;
-        }, 1000);
-    });
+   let i = 0;
+   setInterval(() => {
+      if (i === points.length) i = 0;
+      bot.pathfinder.setGoal(new GoalXZ(points[i][0], points[i][2]));
+      i++;
+   }, 3000);
 }
 
 createBot();
+
+
+// ✅ Express Web Server to keep Render alive
+const express = require('express');
+const app = express();
+app.get('/', (req, res) => res.send('🤖 Bot is alive!'));
+app.listen(process.env.PORT || 3000, () => {
+   console.log('🌐 Web server running to keep Render alive');
+});
+
