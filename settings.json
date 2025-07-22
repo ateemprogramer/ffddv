@@ -14,14 +14,14 @@
   "position": {
     "enabled": false,
     "x": 0,
-    "y": 0,
+    "y": 64,
     "z": 0
   },
 
   "utils": {
     "auto-auth": {
-      "enabled": false,
-      "password": ""
+      "enabled": true,
+      "password": "123456"
     },
 
     "anti-afk": {
@@ -37,8 +37,8 @@
       },
 
       "circle-walk": {
-        "enabled": false,
-        "radius": 2
+        "enabled": true,
+        "radius": 3
       }
     },
 
@@ -46,11 +46,10 @@
       "enabled": false,
       "repeat": true,
       "repeat-delay": 60,
-
       "messages": [
-        "I'm a regular player ",
-        "My owner is urFate_ ",
-        "I want be alone ",
+        "I'm a regular player",
+        "My owner is urFate_",
+        "I want be alone",
         "Visit my GitHub page! (c)"
       ]
     },
