@@ -10,11 +10,10 @@ const logger = loggers.logger;
 function createBot() {
    const bot = mineflayer.createBot({
       username: config['bot-account']['username'],
-      password: config['bot-account']['password'],
-      auth: config['bot-account']['type'],
       host: config.server.ip,
       port: config.server.port,
       version: config.server.version,
+      auth: config['bot-account']['type'] // offline o microsoft
    });
 
    bot.loadPlugin(pathfinder);
@@ -25,16 +24,6 @@ function createBot() {
 
    bot.once('spawn', () => {
       logger.info("✅ Bot joined the server");
-
-      if (config.utils['auto-auth'].enabled) {
-         logger.info('🔐 Starting auto-auth module');
-         let password = config.utils['auto-auth'].password;
-
-         setTimeout(() => {
-            bot.chat(`/register ${password} ${password}`);
-            bot.chat(`/login ${password}`);
-         }, 1000);
-      }
 
       if (config.utils['chat-messages'].enabled) {
          logger.info('💬 Starting chat-messages module');
@@ -100,9 +89,8 @@ function createBot() {
 
    if (config.utils['auto-reconnect']) {
       bot.on('end', () => {
-         setTimeout(() => {
-            createBot();
-         }, config.utils['auto-reconnect-delay']);
+         logger.warn('🔁 Bot disconnected. Reconnecting...');
+         setTimeout(createBot, config.utils['auto-reconnect-delay']);
       });
    }
 
@@ -110,7 +98,7 @@ function createBot() {
       let msg = '';
       try {
          const parsed = JSON.parse(reason);
-         msg = parsed?.text || parsed?.extra?.map(e => e.text).join('') || reason;
+         msg = parsed?.translate || parsed?.text || parsed?.extra?.map(e => e.text).join('') || reason;
       } catch {
          msg = typeof reason === 'string' ? reason : JSON.stringify(reason);
       }
@@ -118,7 +106,7 @@ function createBot() {
       logger.warn(`🚫 Bot was kicked from server. Reason: ${msg}`);
 
       if (!loggedIn) {
-         logger.error('❗ Bot could not join the server. Check IP, port, version, or server is not allowing bots.');
+         logger.error('❗ Bot could not join the server. Check if IP, port or version are correct.');
       }
    });
 
@@ -136,7 +124,6 @@ function createBot() {
    });
 }
 
-// Bot walking in square pattern (anti-afk)
 function circleWalk(bot, radius) {
    const pos = bot.entity.position;
    const x = pos.x;
@@ -160,7 +147,7 @@ function circleWalk(bot, radius) {
 
 createBot();
 
-// ✅ Express Web Server to keep Render alive
+// 🌐 Web Server para mantener vivo en Render
 const express = require('express');
 const app = express();
 app.get('/', (req, res) => res.send('🤖 Bot is alive!'));
