@@ -106,19 +106,33 @@ function createBot() {
       });
    }
 
-   bot.on('kicked', (reason) => {
+   bot.on('kicked', (reason, loggedIn) => {
       let msg = '';
       try {
-         const r = JSON.parse(reason);
-         msg = r?.text || r?.extra?.[0]?.text || reason;
+         const parsed = JSON.parse(reason);
+         msg = parsed?.text || parsed?.extra?.map(e => e.text).join('') || reason;
       } catch {
-         msg = reason;
+         msg = typeof reason === 'string' ? reason : JSON.stringify(reason);
       }
+
       logger.warn(`🚫 Bot was kicked from server. Reason: ${msg}`);
+
+      if (!loggedIn) {
+         logger.error('❗ Bot could not join the server. Check IP, port, version, or server is not allowing bots.');
+      }
    });
 
    bot.on('error', (err) => {
-      logger.error(`❌ Error: ${err.message}`);
+      logger.error(`❌ Connection error: ${err.message}`);
+      if (err.code === 'ECONNREFUSED') {
+         logger.error('🔌 Connection refused. Is the server online and the IP/port correct?');
+      } else if (err.code === 'ENOTFOUND') {
+         logger.error('🌐 Could not find server. Check the domain or IP.');
+      } else if (err.message.includes('Invalid credentials')) {
+         logger.error('🔒 Invalid login. If Mojang, migrate to Microsoft or use "offline" type.');
+      } else {
+         logger.error(`❗ Unknown error: ${err}`);
+      }
    });
 }
 
@@ -146,7 +160,6 @@ function circleWalk(bot, radius) {
 
 createBot();
 
-
 // ✅ Express Web Server to keep Render alive
 const express = require('express');
 const app = express();
@@ -154,4 +167,3 @@ app.get('/', (req, res) => res.send('🤖 Bot is alive!'));
 app.listen(process.env.PORT || 3000, () => {
    console.log('🌐 Web server running to keep Render alive');
 });
-
