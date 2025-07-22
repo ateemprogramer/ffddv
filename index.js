@@ -25,6 +25,14 @@ function createBot() {
    bot.once('spawn', () => {
       logger.info("✅ Bot joined the server");
 
+      // 👁️ Movimiento aleatorio de cámara y sneak (anti-AFK simple)
+      setTimeout(() => {
+         const yaw = (Math.random() - 0.5) * Math.PI * 2;
+         const pitch = (Math.random() - 0.5) * 0.5;
+         bot.look(yaw, pitch, true);
+         bot.setControlState('sneak', true);
+      }, Math.random() * 4000 + 1000);
+
       if (config.utils['chat-messages'].enabled) {
          logger.info('💬 Starting chat-messages module');
          const messages = config.utils['chat-messages']['messages'];
@@ -153,10 +161,4 @@ const app = express();
 app.get('/', (req, res) => res.send('🤖 Bot is alive!'));
 app.listen(process.env.PORT || 3000, () => {
    console.log('🌐 Web server running to keep Render alive');
-
-   setTimeout(() => {
-  bot.look(Math.random(), Math.random(), true);
-  bot.setControlState('sneak', true);
-}, Math.random() * 4000 + 1000);
-
 });
